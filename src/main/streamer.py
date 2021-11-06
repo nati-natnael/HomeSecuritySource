@@ -43,7 +43,7 @@ class Streamer:
             logging.error(f"Exception encountered, {e}")
 
     def start(self):
-        self.load_config("../../src/resources/application.yml")
+        self.load_config("src/resources/application.yml")
 
         context = zmq.Context()
         socket = context.socket(zmq.PUB)
