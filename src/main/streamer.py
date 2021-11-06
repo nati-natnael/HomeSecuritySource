@@ -2,9 +2,9 @@ import cv2
 import zmq
 import yaml
 import logging
-import datetime
 
 from time import sleep
+from datetime import datetime
 
 logging.basicConfig(format="%(asctime)s %(threadName)-9s [%(levelname)s] - %(message)s", level=logging.DEBUG)
 
