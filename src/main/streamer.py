@@ -30,7 +30,7 @@ class Streamer:
         self.port = None
         self.camId = None
 
-    def load_server_config(self, config_file_path):
+    def load_config(self, config_file_path):
         try:
             with open(config_file_path, 'r') as file:
                 config_dict = yaml.safe_load(file)
@@ -43,13 +43,13 @@ class Streamer:
             logging.error(f"Exception encountered, {e}")
 
     def start(self):
-        self.load_server_config('src/resources/application.yml')
+        self.load_config("../../src/resources/application.yml")
 
         context = zmq.Context()
         socket = context.socket(zmq.PUB)
-        socket.connect("tcp://" + self.ip + ":" + self.port)
+        socket.connect(f"tcp://{self.ip}:{self.port}")
 
-        print(f"Streaming to {self.ip}:{self.port}")
+        print(f"Streaming to --> {self.ip}:{self.port}")
 
         camera = cv2.VideoCapture(self.camId)
 
