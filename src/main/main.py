@@ -3,16 +3,12 @@ import zmq
 import yaml
 import time
 import logging
-import threading
 
 from time import sleep
-from queue import Queue
 from datetime import datetime
+from imutils.video import VideoStream
 
 logging.basicConfig(format="%(asctime)s %(threadName)-9s [%(levelname)s] - %(message)s", level=logging.DEBUG)
-
-
-queue = Queue(maxsize=20)
 
 
 def add_name(frame, name):
@@ -45,26 +41,6 @@ def load_config(config_file_path):
     return configuration
 
 
-def read_from_camera(cam_id):
-    capture = cv2.VideoCapture(cam_id)
-
-    while True:
-        # start_time = time.time()
-        _, _frame = capture.read()
-
-        # # Display the resulting frame
-        # cv2.imshow('Read Frame', frame)
-        # if cv2.waitKey(25) & 0xFF == ord('q'):
-        #     breakd
-
-        queue.put(_frame)
-
-        # sleep(Streamer.THREAD_SLEEP)
-        # print("--- Read Frame: %s seconds ---" % (time.time() - start_time))
-
-        # sleep(0.0005)
-
-
 if __name__ == '__main__':
     config = load_config("C:/Users/meti-nati/PycharmProjects/HomeSecuritySource/src/resources/application.yml")
     ip = config.get('ip')
@@ -76,32 +52,28 @@ if __name__ == '__main__':
     socket = context.socket(zmq.PUB)
     socket.connect(f"tcp://{ip}:{port}")
 
-    print(f"Streaming to --> {ip}:{port}")
+    logging.info(f"Streaming to --> {ip}:{port}")
 
-    t1 = threading.Thread(target=read_from_camera, args=(camId, ))
-    t1.start()
+    vs = VideoStream(src=0).start()
 
     while True:
         start_time = time.time()
-        size = 0
 
-        if not queue.empty():
-            size = queue.qsize()
+        vid_frame = vs.read()
 
-            vid_frame = queue.get()
+        add_datetime_to(vid_frame)
+        add_name(vid_frame, camName)
 
-            add_datetime_to(vid_frame)
-            add_name(vid_frame, camName)
+        _, buffer = cv2.imencode('.jpg', vid_frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
 
-            _, buffer = cv2.imencode('.jpg', vid_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-            socket.send(buffer)
+        socket.send(buffer)
 
-            # # Display the resulting frame
-            # cv2.imshow('Process Frame', frame)
-            # if cv2.waitKey(25) & 0xFF == ord('q'):
-            #     break
+        # # Display the resulting frame
+        # cv2.imshow('Process Frame', vid_frame)
+        # if cv2.waitKey(25) & 0xFF == ord('q'):
+        #     break
 
-        print(f"--- Process Frame: Queue Size: {size}: {(time.time() - start_time)} seconds ---")
+        logging.info(f"Process Frame: {(time.time() - start_time)} seconds")
 
         sleep(0.0005)
 
