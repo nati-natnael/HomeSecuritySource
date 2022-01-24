@@ -1,7 +1,6 @@
 import cv2
-import zmq
 import yaml
-import time
+import socket
 import logging
 
 from time import sleep
@@ -48,32 +47,21 @@ if __name__ == '__main__':
     camId = config.get('camera_id')
     camName = config.get('camera_name')
 
-    context = zmq.Context()
-    socket = context.socket(zmq.PUB)
-    socket.connect(f"tcp://{ip}:{port}")
+    socket_conn = socket.socket(socket.AF_INET, type=socket.SOCK_DGRAM)
 
     logging.info(f"Streaming to --> {ip}:{port}")
 
     vs = VideoStream(src=0).start()
 
     while True:
-        start_time = time.time()
-
         vid_frame = vs.read()
 
         add_datetime_to(vid_frame)
         add_name(vid_frame, camName)
 
-        _, buffer = cv2.imencode('.jpg', vid_frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
+        _, buffer = cv2.imencode('.jpg', vid_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
 
-        socket.send(buffer)
-
-        # # Display the resulting frame
-        # cv2.imshow('Process Frame', vid_frame)
-        # if cv2.waitKey(25) & 0xFF == ord('q'):
-        #     break
-
-        logging.info(f"Process Frame: {(time.time() - start_time)} seconds")
+        socket_conn.sendto(buffer, (ip, port))
 
         sleep(0.0005)
 
