@@ -2,4 +2,3 @@
 ip: "127.0.0.1"
 port: 5555
 camera_id: 0
-camera_name: "Camera Number 1"

@@ -10,12 +10,6 @@ from imutils.video import VideoStream
 logging.basicConfig(format="%(asctime)s %(threadName)-9s [%(levelname)s] - %(message)s", level=logging.DEBUG)
 
 
-def add_name(frame, name):
-    cv2.putText(frame, name, org=(10, 30),
-                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1,
-                color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
-
-
 def add_datetime_to(frame):
     if len(frame.shape) == 2:
         height, width = frame.shape
@@ -56,13 +50,15 @@ if __name__ == '__main__':
     while True:
         vid_frame = vs.read()
 
+        vid_frame = cv2.resize(vid_frame, (640, 420))
+
         add_datetime_to(vid_frame)
-        add_name(vid_frame, camName)
 
         _, buffer = cv2.imencode('.jpg', vid_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
 
-        socket_conn.sendto(buffer, (ip, port))
+        try:
+            socket_conn.sendto(buffer, (ip, port))
+        except:
+            continue
 
         sleep(0.0005)
-
-
