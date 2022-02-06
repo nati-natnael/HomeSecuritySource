@@ -11,6 +11,7 @@ WORKDIR ${WORK_DIR}
 COPY . .
 
 RUN python3 -m venv $VIRTUAL_ENV
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip           &&\
+    pip install -r requirements.txt
 
 CMD ["python", "src/main/main.py"]
