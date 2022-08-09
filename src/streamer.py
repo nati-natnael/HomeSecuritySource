@@ -1,6 +1,5 @@
 import cv2
 import zmq
-import yaml
 import logging
 
 from time import sleep
@@ -25,26 +24,12 @@ def add_datetime_to(frame):
 class Streamer:
     THREAD_SLEEP = 0.0005  # in seconds
 
-    def __init__(self):
-        self.ip = None
-        self.port = None
-        self.camId = None
-
-    def load_config(self, config_file_path):
-        try:
-            with open(config_file_path, 'r') as file:
-                config_dict = yaml.safe_load(file)
-
-                self.ip = config_dict['ip']
-                self.port = config_dict['port']
-                self.camId = config_dict['camera-id']
-
-        except IOError as e:
-            logging.error(f"Exception encountered, {e}")
+    def __init__(self, ip, port, camera_id):
+        self.ip = ip
+        self.port = port
+        self.camId = camera_id
 
     def start(self):
-        self.load_config("src/resources/application.yml")
-
         context = zmq.Context()
         socket = context.socket(zmq.PUB)
         socket.connect(f"tcp://{self.ip}:{self.port}")
