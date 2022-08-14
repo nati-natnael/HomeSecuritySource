@@ -1,5 +1,5 @@
 import cv2
-import zmq
+import socket
 import logging
 
 from time import sleep
@@ -31,24 +31,22 @@ class Streamer:
         self.camera_id = camera_id
 
     def start(self):
-        context = zmq.Context()
-        socket = context.socket(zmq.PUB)
-        socket.connect(f"tcp://{self.ip}:{self.port}")
+        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        print(f"Streaming to --> {self.ip}:{self.port}")
+        server_addr = (self.ip, self.port)
+
+        print(f"Streaming to --> {server_addr}")
 
         vs = VideoStream(src=self.camera_id).start()
 
         while True:
             frame = vs.read()
-            frame = cv2.resize(frame, (480, 320))
 
             add_datetime(frame)
 
-            cv2.imshow('image', frame)
-            cv2.waitKey(0)
+            frame = cv2.resize(frame, (320, 240))
 
             _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-            socket.send(buffer)
+            client.sendto(buffer, server_addr)
 
             sleep(Streamer.THREAD_SLEEP)
