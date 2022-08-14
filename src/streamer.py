@@ -35,7 +35,7 @@ class Streamer:
 
         server_addr = (self.ip, self.port)
 
-        print(f"Streaming to --> {server_addr}")
+        print(f"streaming to --> {server_addr}")
 
         vs = VideoStream(src=self.camera_id).start()
 
@@ -47,6 +47,9 @@ class Streamer:
             frame = cv2.resize(frame, (480, 320))
 
             _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+
+            print(f"sent {buffer.size} bytes")
+
             client.sendto(buffer, server_addr)
 
             sleep(Streamer.THREAD_SLEEP)
