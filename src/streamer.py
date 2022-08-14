@@ -45,6 +45,9 @@ class Streamer:
 
             add_datetime(frame)
 
+            cv2.imshow('image', frame)
+            cv2.waitKey(0)
+
             _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
             socket.send(buffer)
 
