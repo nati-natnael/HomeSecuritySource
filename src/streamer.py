@@ -4,11 +4,12 @@ import logging
 
 from time import sleep
 from datetime import datetime
+from imutils.video import VideoStream
 
 logging.basicConfig(format="%(asctime)s %(threadName)-9s [%(levelname)s] - %(message)s", level=logging.DEBUG)
 
 
-def add_datetime_to(frame):
+def add_datetime(frame):
     if len(frame.shape) == 2:
         height, width = frame.shape
     else:
@@ -27,7 +28,7 @@ class Streamer:
     def __init__(self, ip, port, camera_id):
         self.ip = ip
         self.port = port
-        self.camId = camera_id
+        self.camera_id = camera_id
 
     def start(self):
         context = zmq.Context()
@@ -36,13 +37,13 @@ class Streamer:
 
         print(f"Streaming to --> {self.ip}:{self.port}")
 
-        camera = cv2.VideoCapture(self.camId)
+        vs = VideoStream(src=self.camera_id).start()
 
         while True:
-            _, frame = camera.read()
+            frame = vs.read()
             frame = cv2.resize(frame, (480, 320))
 
-            add_datetime_to(frame)
+            add_datetime(frame)
 
             _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
             socket.send(buffer)
