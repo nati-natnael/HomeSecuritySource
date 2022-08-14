@@ -44,7 +44,7 @@ class Streamer:
 
             add_datetime(frame)
 
-            frame = cv2.resize(frame, (320, 240))
+            frame = cv2.resize(frame, (480, 320))
 
             _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
             client.sendto(buffer, server_addr)
