@@ -1,54 +1,92 @@
 import cv2
-import zmq
+import socket
 import logging
 
 from time import sleep
 from datetime import datetime
 from imutils.video import VideoStream
 
-logging.basicConfig(format="%(asctime)s %(threadName)-9s [%(levelname)s] - %(message)s", level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(threadName)-9s [%(levelname)s] - %(message)s', level=logging.DEBUG)
 
 
-def add_datetime(frame):
+def write_text_with_dark_outline(frame, text, text_color, position):
+    text_outline_color = (0, 0, 0)
+
+    cv2.putText(frame, f'{text}', org=position,
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1,
+                color=text_outline_color, thickness=5, lineType=cv2.LINE_AA)
+    cv2.putText(frame, f'{text}', org=position,
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1,
+                color=text_color, thickness=2, lineType=cv2.LINE_AA)
+
+
+def add_description(frame, camera_name='N/A'):
     if len(frame.shape) == 2:
         height, width = frame.shape
     else:
         height, width, _ = frame.shape
 
-    datetime_string = datetime.now().strftime("%b %d, %Y %H:%M:%S")
+    text_color = (255, 255, 255)
+    camera_name_position = (10, 30)
+    datetime_position = (10, height - 20)
 
-    cv2.putText(frame, datetime_string, org=(10, height - 20),
-                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1,
-                color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+    write_text_with_dark_outline(frame, camera_name, text_color, camera_name_position)
+
+    datetime_string = datetime.now().strftime('%b %d, %Y %H:%M:%S')
+
+    write_text_with_dark_outline(frame, datetime_string, text_color, datetime_position)
+
+
+def send_frame(client_socket, server_addr, buffer):
+    padded_buffer_size = str(buffer.size).zfill(Streamer.DIGIT_COUNT)
+
+    msg_start = bytes(f'START,{padded_buffer_size}', 'utf-8')
+
+    # send message
+    client_socket.sendto(msg_start, server_addr)
+
+    buffer_bytes = buffer.tobytes()
+    for x in range(0, buffer.size, Streamer.MAX_MSG_SIZE):
+        start = x
+        end = start + Streamer.MAX_MSG_SIZE
+
+        if end > buffer.size:
+            end = buffer.size
+
+        send_buf = buffer_bytes[start:end]
+        client_socket.sendto(send_buf, server_addr)
 
 
 class Streamer:
     THREAD_SLEEP = 0.0005  # in seconds
+    MAX_MSG_SIZE = 60000   # in bytes
+    DIGIT_COUNT = 8
+    FRAME_SIZE = (480, 320)
 
-    def __init__(self, ip, port, camera_id):
+    def __init__(self, ip, port, camera_id, camera_name):
         self.ip = ip
         self.port = port
         self.camera_id = camera_id
+        self.camera_name = camera_name
 
     def start(self):
-        context = zmq.Context()
-        socket = context.socket(zmq.PUB)
-        socket.connect(f"tcp://{self.ip}:{self.port}")
+        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        print(f"Streaming to --> {self.ip}:{self.port}")
+        server_addr = (self.ip, self.port)
+
+        print(f'streaming to --> {server_addr}')
 
         vs = VideoStream(src=self.camera_id).start()
 
         while True:
             frame = vs.read()
-            frame = cv2.resize(frame, (480, 320))
 
-            add_datetime(frame)
+            add_description(frame, self.camera_name)
 
-            cv2.imshow('image', frame)
-            cv2.waitKey(0)
+            frame = cv2.resize(frame, Streamer.FRAME_SIZE)
 
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
-            socket.send(buffer)
+            _, buffer = cv2.imencode('.jpg', frame)
+
+            send_frame(client, server_addr, buffer)
 
             sleep(Streamer.THREAD_SLEEP)
